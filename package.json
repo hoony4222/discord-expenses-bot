@@ -1,0 +1,13 @@
+{
+    "name": "expenses-bot",
+    "version": "1.0.0",
+    "description": "역할별 지출 기록 및 정산 봇",
+    "main": "expenses.js",
+    "scripts": {
+        "start": "node expenses.js"
+    },
+    "dependencies": {
+        "discord.js": "^14.25.1",
+        "node-cron": "^4.2.1"
+    }
+}
