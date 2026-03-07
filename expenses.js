@@ -1,6 +1,7 @@
 const { Client, Events, GatewayIntentBits } = require('discord.js');
 const fs = require('fs');
 const cron = require('node-cron');
+require('dotenv').config();
 const token = process.env.TOKEN;
 const channelId = "1102824094291996792";
 
