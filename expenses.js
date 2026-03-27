@@ -120,7 +120,7 @@ function ggop() {
 	else if (temp == 87) {return "지갑이 긴장하고 있어요. 아셨어요?";}
 	else if (temp == 88) {return "또 하나의 지출 달성이에요.";}
 	else if (temp == 89) {return "실화인가.";}
-	else if (temp == 90) {return "에휴...";}
+	else if (temp == 90) {return "하아...";}
 	else if (temp == 91) {return "소비가 아주 적극적이네요.";}
 	else if (temp == 92) {return "통장이 멀어지는 느낌이에요.";}
 	else if (temp == 93) {return "이제는 지쳐서 드릴 말씀도 없네요.";}
@@ -129,7 +129,7 @@ function ggop() {
 	else if (temp == 96) {return "지갑이 항복하겠대요. 그만 괴롭혀요.";}
 	else if (temp == 97) {return "소비의 흐름이 아주 거세네요. 다 휩쓸려가겠어요.";}
 	else if (temp == 98) {return "돈 쓰는 게 즐거우신가요?";}
-	else if (temp == 99) {return "지갑이 방금 긴급 경보를 울리던데, 들으셨어요?";}
+	else if (temp == 99) {return "지갑이 방금 긴급 경보를 울리던데, 아세요?";}
 	else if (temp == 100) {return "이쯤 되면 소비가 취미신가보네요.";}
 }
 
@@ -178,7 +178,7 @@ client.on("messageCreate", (message) => {
 
 	// 메시지 출력
 	if (ggopcheck == 1) {
-	  message.reply(`${roleName} 지출로 ${amount}원이 기록되었습니다. \n ${ggop()}`);
+	  message.reply(`${roleName} 지출로 ${amount}원이 기록되었습니다. ${ggop()}`);
 	} else {
 	  message.reply(`${roleName} 지출로 ${amount}원이 기록되었습니다.`);
 	}
@@ -222,6 +222,18 @@ client.on("messageCreate", (message) => {
 
 });
 
+// 매일 00시 현재 expenses를 파일에 덮어쓰기 및 백업 생성
+cron.schedule("0 0 * * *", () => {
+  const payload = JSON.stringify(expenses, null, 2);
+  fs.writeFileSync("expenses-data.json", payload);
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const backupFileName = `expenses-data-${timestamp}.txt`;
+  fs.writeFileSync(backupFileName, payload);
+
+  console.log(`[cron] 매일 자정에 expenses-data.json 저장 및 ${backupFileName} 백업 생성 완료.`);
+});
+
 // 매달 1일 00시 지난 달 결과 발표 및 값 초기화
 cron.schedule("0 0 1 * *", () => {
   const result = {...expenses};
@@ -240,7 +252,6 @@ cron.schedule("0 0 1 * *", () => {
   }
 
 });
-
 
 
 
