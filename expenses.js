@@ -14,10 +14,14 @@ const client = new Client({
 });
 
 let expenses = {};
+let lastExpenses = {};
 
 // 기존 데이터 불러오기
 if (fs.existsSync("expenses-data.json")) {
   expenses = JSON.parse(fs.readFileSync("expenses-data.json"));
+}
+if (fs.existsSync("expenses-last.json")) {
+  lastExpenses = JSON.parse(fs.readFileSync("expenses-last.json"));
 }
 
 client.once(Events.ClientReady, readyClient => {
@@ -28,6 +32,11 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function privateReply(message, text) {
+  return message.author.send(text).catch(() => {
+    return message.reply(text);
+  });
+}
 
 function ggop() {
   var temp = randomInt(1, 100);
@@ -176,30 +185,33 @@ client.on("messageCreate", (message) => {
       JSON.stringify(expenses, null, 2)
     );
 
-	// 메시지 출력
-	if (ggopcheck == 1) {
-	  message.reply({ content: `${roleName} 지출로 ${amount}원이 기록되었습니다. ${ggop()}`, ephemeral: true });
-	} else {
-	  message.reply({ content: `${roleName} 지출로 ${amount}원이 기록되었습니다.`, ephemeral: true });
-	}
+	// 메시지 출력 (DM 우선, 실패 시 채널 답글)
+	const replyText = ggopcheck == 1
+	  ? `${roleName} 지출로 ${amount}원이 기록되었습니다. ${ggop()}`
+	  : `${roleName} 지출로 ${amount}원이 기록되었습니다.`;
+	privateReply(message, replyText);
 
   } else if (message.content === "!내역") {
     let text = "📊 이번 달 역할별 지출\n\n";
     for (const role in expenses) {
       text += `${role} : ${expenses[role]}원\n`;
     }
-    message.reply({ content: text, ephemeral: true });
+    privateReply(message, text);
   } else if (message.content === "!과거내역") {
-    let text = "📊 저번 달 역할별 지출\n\n";
-    for (const role in ex_result) {
-      text += `${role} : ${ex_result[role]}원\n`;
+    if (Object.keys(lastExpenses).length === 0) {
+      privateReply(message, "저번 달 지출 기록이 없습니다.");
+    } else {
+      let text = "📊 저번 달 역할별 지출\n\n";
+      for (const role in lastExpenses) {
+        text += `${role} : ${lastExpenses[role]}원\n`;
+      }
+      privateReply(message, text);
     }
-    message.reply({ content: text, ephemeral: true });
   } else if (message.content.startsWith("!수정")) {
     const amount = parseInt(message.content.split(" ")[1]);
 
     if (isNaN(amount)) {
-      message.reply({ content: "금액을 입력해주세요.", ephemeral: true });
+      privateReply(message, "금액을 입력해주세요.");
       return;
     }
 
@@ -220,9 +232,9 @@ client.on("messageCreate", (message) => {
         JSON.stringify(expenses, null, 2)
       );
 
-      message.reply({ content: `${roleName} 지출에서 ${amount}원이 차감되었습니다.`, ephemeral: true });
+      privateReply(message, `${roleName} 지출에서 ${amount}원이 차감되었습니다.`);
     } else {
-      message.reply({ content: "수정할 지출 내역이 없습니다.", ephemeral: true });
+      privateReply(message, "수정할 지출 내역이 없습니다.");
     }
   }
 
@@ -242,19 +254,18 @@ cron.schedule("0 0 * * *", () => {
 
 // 매달 1일 00시 지난 달 결과 발표 및 값 초기화
 cron.schedule("0 0 1 * *", () => {
-  const ex_result = {...expenses};
+  lastExpenses = {...expenses};
+  fs.writeFileSync("expenses-last.json", JSON.stringify(lastExpenses, null, 2));
+
+  const reportText = "📊 지난달 역할별 지출\n\n" +
+    Object.entries(lastExpenses).map(([role, value]) => `${role} : ${value}원`).join("\n");
+
   expenses = {};
   fs.writeFileSync("expenses-data.json", JSON.stringify(expenses, null, 2));
 
-  let text = "📊 지난달 역할별 지출\n\n";
-  for (const role in ex_result) {
-    text += `${role} : ${ex_result[role]}원\n`;
-  }
-  message.reply({content: text});
   const channel = client.channels.cache.get(channelId);
-
   if (channel) {
-    channel.send(text);
+    channel.send(reportText);
   }
 
 });
