@@ -178,9 +178,9 @@ client.on("messageCreate", (message) => {
 
 	// 메시지 출력
 	if (ggopcheck == 1) {
-	  message.reply(`${roleName} 지출로 ${amount}원이 기록되었습니다. ${ggop()}`);
+	  message.reply({ content: `${roleName} 지출로 ${amount}원이 기록되었습니다. ${ggop()}`, ephemeral: true });
 	} else {
-	  message.reply(`${roleName} 지출로 ${amount}원이 기록되었습니다.`);
+	  message.reply({ content: `${roleName} 지출로 ${amount}원이 기록되었습니다.`, ephemeral: true });
 	}
 
   } else if (message.content === "!내역") {
@@ -188,12 +188,18 @@ client.on("messageCreate", (message) => {
     for (const role in expenses) {
       text += `${role} : ${expenses[role]}원\n`;
     }
-    message.reply(text);
+    message.reply({ content: text, ephemeral: true });
+  } else if (message.content === "!과거내역") {
+    let text = "📊 저번 달 역할별 지출\n\n";
+    for (const role in ex_result) {
+      text += `${role} : ${ex_result[role]}원\n`;
+    }
+    message.reply({ content: text, ephemeral: true });
   } else if (message.content.startsWith("!수정")) {
     const amount = parseInt(message.content.split(" ")[1]);
 
     if (isNaN(amount)) {
-      message.reply("금액을 입력해주세요.");
+      message.reply({ content: "금액을 입력해주세요.", ephemeral: true });
       return;
     }
 
@@ -214,9 +220,9 @@ client.on("messageCreate", (message) => {
         JSON.stringify(expenses, null, 2)
       );
 
-      message.reply(`${roleName} 지출에서 ${amount}원이 차감되었습니다.`);
+      message.reply({ content: `${roleName} 지출에서 ${amount}원이 차감되었습니다.`, ephemeral: true });
     } else {
-      message.reply("수정할 지출 내역이 없습니다.");
+      message.reply({ content: "수정할 지출 내역이 없습니다.", ephemeral: true });
     }
   }
 
@@ -231,20 +237,20 @@ cron.schedule("0 0 * * *", () => {
   const backupFileName = `expenses-data-${timestamp}.txt`;
   fs.writeFileSync(backupFileName, payload);
 
-  console.log(`[cron] 매일 자정에 expenses-data.json 저장 및 ${backupFileName} 백업 생성 완료.`);
+  console.log(`[cron] expenses-data.json 저장 및 ${backupFileName} 백업 생성 완료.`);
 });
 
 // 매달 1일 00시 지난 달 결과 발표 및 값 초기화
 cron.schedule("0 0 1 * *", () => {
-  const result = {...expenses};
+  const ex_result = {...expenses};
   expenses = {};
   fs.writeFileSync("expenses-data.json", JSON.stringify(expenses, null, 2));
 
   let text = "📊 지난달 역할별 지출\n\n";
-  for (const role in result) {
-    text += `${role} : ${result[role]}원\n`;
+  for (const role in ex_result) {
+    text += `${role} : ${ex_result[role]}원\n`;
   }
-
+  message.reply({content: text});
   const channel = client.channels.cache.get(channelId);
 
   if (channel) {
